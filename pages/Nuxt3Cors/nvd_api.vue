@@ -74,7 +74,7 @@
     import { ref } from 'vue'
     import { useCpeMatching } from '@/composables/useCpeMatching'
     const processing = ref(false)
-    const key = ref('36d60302-e1bb-453b-b679-6828010ec8d9')
+    const key = ref('')
     const cpeMatchString = ref('https://services.nvd.nist.gov/rest/json/cpes/2.0?cpeMatchString=cpe:2.3:o:microsoft:windows_10')
     const products = ref('')
     const withApiKey = ref('false')
