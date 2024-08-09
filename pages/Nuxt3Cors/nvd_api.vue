@@ -54,9 +54,14 @@
             <v-card-actions>
                 <v-btn
                     color="teal-accent-4"
-                    :loading="processing"
+                    :loading="processingGetCpe"
                     @click="getCpe"
                 >GET</v-btn>
+                <v-btn
+                    color="teal-accent-4"
+                    :loading="processingGetCpeServer"
+                    @click="getCpeFromServer"
+                >GET(Server)</v-btn>
             </v-card-actions>
             <v-card-text>
                 <v-textarea
@@ -73,18 +78,28 @@
 <script setup>
     import { ref } from 'vue'
     import { useCpeMatching } from '@/composables/useCpeMatching'
-    const processing = ref(false)
+    const processingGetCpe = ref(false)
+    const processingGetCpeServer = ref(false)
     const key = ref('')
     const cpeMatchString = ref('https://services.nvd.nist.gov/rest/json/cpes/2.0?cpeMatchString=cpe:2.3:o:microsoft:windows_10')
     const products = ref('')
-    const withApiKey = ref('false')
 
     const getCpe = async () => {
-        processing.value = true
+        processingGetCpe.value = true
         const data = await useCpeMatching(cpeMatchString.value, key.value)
         if (data) {
             products.value = JSON.stringify(data)
         }
-        processing.value = false
+        processingGetCpe.value = false
     }
+
+    const getCpeFromServer = async () => {
+        processingGetCpeServer.value = true
+        const { data } = await useFetch('/api/cpe')
+        if (data) {
+            products.value = JSON.stringify(data)
+        }
+        processingGetCpeServer.value = false
+    }
+
 </script>

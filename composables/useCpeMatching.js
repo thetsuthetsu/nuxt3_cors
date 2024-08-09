@@ -16,8 +16,11 @@ export async function useCpeMatching (url, key) {
         if (key) {
             // headerを指定するとCORSエラーが発生。
             const products = await $fetch(url, {
-                headers: {
-                    common: {'apiKey' :  key}
+                headers: {                    
+                    // "Sec-Fetch-Dest": "empty",
+                    // "Sec-Fetch-Mode": "cors",
+                    // "Sec-Fetch-Site": "cross-site",                                
+                    "apiKey" :  key
                 }
             })
             return products

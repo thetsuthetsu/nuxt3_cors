@@ -1,70 +1,94 @@
-# composition api
+# Nuxt3の$fetchでCORSエラー対応を行う。
 
-## setup
-1. nuxt init
-    ```
-    PS C:\work\git\vue3\nuxt3samples> npx nuxi init compsition_api
-    Need to install the following packages:
-    nuxi@3.5.3
-    Ok to proceed? (y) y
-    ```
+## CORSエラー発生状況
+* $fetchにて、NVD API (https://services.nvd.nist.gov/rest/json/cpes/2.0)にGET要求したとき
+* エラー発生頻度
+    * apiKeyヘッダあり：毎回
+        * API_KEY=36d60302-e1bb-453b-b679-6828010ec8d9
+    * apiKeyヘッダなし：時々
 
-2. install vuetify @mdi/font
-    ```
-    PS C:\work\git\vue3\nuxt3samples\compsition_api> npm install vuetify @mdi/font
-    npm WARN deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+* 成功時
+    * chromeデバッグツール(Ctrl + Shift + i)の「Network」情報
+        * ブラウザは単純リクエストとしてGETを実行
+            ![](img/simple_get.png)
 
-    added 867 packages, and audited 868 packages in 35s
+        * request-headers
+            ```
+            GET /rest/json/cpes/2.0?cpeMatchString=cpe:2.3:o:microsoft:windows_10 HTTP/1.1
+            Accept: */*
+            Accept-Encoding: gzip, deflate, br, zstd
+            Accept-Language: ja,en-US;q=0.9,en;q=0.8,zh-TW;q=0.7,zh;q=0.6
+            Connection: keep-alive
+            Host: services.nvd.nist.gov
+            Origin: http://localhost:3000
+            Referer: http://localhost:3000/
+            Sec-Fetch-Dest: empty
+            Sec-Fetch-Mode: cors
+            Sec-Fetch-Site: cross-site
+            User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36
+            sec-ch-ua: "Google Chrome";v="125", "Chromium";v="125", "Not.A/Brand";v="24"
+            sec-ch-ua-mobile: ?0
+            sec-ch-ua-platform: "Windows"
+            ```
+        
+        * response-headers
+            ```
+            HTTP/1.1 200 OK
+            content-type: application/json
+            x-frame-options: SAMEORIGIN
+            access-control-allow-origin: *
+            access-control-allow-headers: accept, apiKey, content-type, origin, x-requested-with
+            access-control-allow-methods: GET, HEAD, OPTIONS
+            access-control-allow-credentials: false
+            date: Thu, 30 May 2024 04:00:03 GMT
+            content-length: 48223
+            apikey: Nos
+            strict-transport-security: max-age=31536000
+            ```
 
-    141 packages are looking for funding
-    run `npm fund` for details
+* CORSエラー発生時
+    * chromeデバッグツール(Ctrl + Shift + i)の「Console」情報
 
-    found 0 vulnerabilities
-    ```
+        ```
+        Access to fetch at 'https://services.nvd.nist.gov/rest/json/cpes/2.0?cpeMatchString=cpe:2.3:o:microsoft:windows_10' from origin 'http://localhost:3000' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.
+        ```
 
-3. nuxt.config.ts
-    ```
-    export default defineNuxtConfig({
-        ・・・
-        ssr: false,
-        css: ["vuetify/styles", "@mdi/font/css/materialdesignicons.css"],
-    })
-    ```
+    * chromeデバッグツール(Ctrl + Shift + i)の「Network」情報
+        * ブラウザはprefligth requestを実行
+            * commonヘッダを付与したことにより、[単純リクエスト](https://developer.mozilla.org/ja/docs/Web/HTTP/CORS#%E5%8D%98%E7%B4%94%E3%83%AA%E3%82%AF%E3%82%A8%E3%82%B9%E3%83%88)ではなくなった。
 
-4. plugins/vuetify.ts
-    ```
-    import { createVuetify } from "vuetify";
-    import * as components from "vuetify/components";
-    import * as directives from "vuetify/directives";
+            ![](img/cors_preflight.png)
+            
 
-    export default defineNuxtPlugin((nuxtApp) => {
-    const vuetify = createVuetify({
-        components,
-        directives,
-    });
+        * request-headers (fetch)
+        
+            ```
+            Provisional headers are shown... 
+            
+            Apikey:  xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+            Referer: http://localhost:3000/
+            Sec-Ch-Ua: "Not/A)Brand";v="8", "Chromium";v="126", "Google Chrome";v="126"
+            Sec-Ch-Ua-Mobile: ?0
+            Sec-Ch-Ua-Platform: "Windows"
+            User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36
+            ```
 
-    nuxtApp.vueApp.use(vuetify);
-    });
-    ```
+        * request-headers (preflight)
+            ```
+            OPTIONS /rest/json/cpes/2.0?cpeMatchString=cpe:2.3:o:microsoft:windows_10 HTTP/1.1
+            Accept: */*
+            Accept-Encoding: gzip, deflate, br, zstd
+            Accept-Language: ja,en-US;q=0.9,en;q=0.8,zh-TW;q=0.7,zh;q=0.6
+            Access-Control-Request-Headers: common
+            Access-Control-Request-Method: GET
+            Connection: keep-alive
+            Host: services.nvd.nist.gov
+            Origin: http://localhost:3000
+            Referer: http://localhost:3000/
+            Sec-Fetch-Dest: empty
+            Sec-Fetch-Mode: cors
+            Sec-Fetch-Site: cross-site
+            User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36
+            ```
 
-5. npm run dev
-    ```
-    Nuxi 3.5.3                                                                                                                                              13:51:09
-    Nuxt 3.5.3 with Nitro 2.4.1                                                                                                                             13:51:09
-                                                                                                                                                            13:51:10
-    > Local:    http://localhost:3000/
-    > Network:  http://172.20.10.6:3000/
-    > Network:  http://[2400:2200:38a:bc53:aff3:9dc3:f7a:3278]:3000/
-    > Network:  http://[2400:2200:38a:bc53:b5f0:83b0:4de0:f593]:3000/
-
-    ✔ Nuxt Devtools is enabled v0.5.5 (experimental)                                                                                                        13:51:13
-    ℹ Vite client warmed up in 1157ms                                                                                                                       13:51:16
-    ✔ Nitro built in 561 ms               
-    ```
-
-## レイアウト
-* app.vue
-    * NuxtLayout, NuxtPageによる基本的なレイアウト
-* layouts/default.vue
-    * アプリケーションバー、ヘッダ、フッタ等、アプリケーションで共通表示されるエリア
-    * <slot />にページ表示部分が展開される。
+## CORSエラー
